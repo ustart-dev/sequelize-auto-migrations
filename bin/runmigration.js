@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-
+require("dotenv").config();
 const path              = require("path");
 const commandLineArgs   = require('command-line-args');
 const fs                = require("fs");
@@ -15,6 +15,7 @@ const optionDefinitions = [
     { name: 'list', alias: 'l', type: Boolean, description: 'Show migration file list (without execution)', defaultValue: false },
     { name: 'migrations-path', type: String, description: 'The path to the migrations folder' },
     { name: 'models-path', type: String, description: 'The path to the models folder' },
+    { name: 'ustart-models', type: Boolean, description: 'Load models from an ustart project. This option replaces the default models-path option. See https://ustart.dev' },
     { name: 'help', type: Boolean, description: 'Show this message' }
 ];
 
@@ -26,11 +27,11 @@ if(!process.env.PWD){
 }
 
 let {
-    migrationsDir, 
+    migrationsDir,
     modelsDir
 } = pathConfig(options);
 
-if (!fs.existsSync(modelsDir)) {
+if (!options['ustart-models'] && !fs.existsSync(modelsDir)) {
     console.log("Can't find models directory. Use `sequelize init` to create it")
     return
 }
@@ -50,7 +51,22 @@ if (options.help)
     process.exit(0);
 }
 
-const sequelize = require(modelsDir).sequelize;
+let sequelize;
+if (options['ustart-models']) {
+  const {
+    ustart,
+    loadModels,
+    DATA_PATH
+  } = require("ustart");
+
+  require(`${DATA_PATH}/datasources`);
+
+  loadModels();
+  sequelize = ustart.datasources.postgres;
+} else {
+  sequelize = require(modelsDir).sequelize;
+}
+
 const queryInterface = sequelize.getQueryInterface();
 
 // execute all migration from
@@ -76,8 +92,8 @@ let migrationFiles = fs.readdirSync(migrationsDir)
       let rev = parseInt( path.basename(file).split('-',2)[0]);
       return (rev >= fromRevision);
   });
-  
-console.log("Migrations to execute:");  
+
+console.log("Migrations to execute:");
 migrationFiles.forEach((file) => {
     console.log("\t"+file);
 });
@@ -86,13 +102,13 @@ if (options.list)
     process.exit(0);
 
 
-Async.eachSeries(migrationFiles, 
+Async.eachSeries(migrationFiles,
     function (file, cb) {
         console.log("Execute migration from file: "+file);
         migrate.executeMigration(queryInterface, path.join(migrationsDir, file), fromPos, (err) => {
             if (stop)
                 return cb("Stopped");
-                
+
             cb(err);
         });
         // set pos to 0 for next migration
