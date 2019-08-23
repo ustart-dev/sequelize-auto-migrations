@@ -13,7 +13,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/flexxnn/sequelize-auto-migrations.git"
+    "url": "git+https://github.com/ustart-dev/sequelize-auto-migrations.git"
   },
   "keywords": [
     "sequelize",
@@ -24,11 +24,14 @@
     "sql"
   ],
   "author": "Michael Maslov",
+  "contributors": [
+    "Leonel Peña <leonel@ustart.dev>"
+  ],
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/flexxnn/sequelize-auto-migrations/issues"
+    "url": "https://github.com/ustart-dev/sequelize-auto-migrations/issues"
   },
-  "homepage": "https://github.com/flexxnn/sequelize-auto-migrations#readme",
+  "homepage": "https://ustart.dev/docs/commands",
   "dependencies": {
     "async": "^2.5.1",
     "command-line-args": "^5.0.2",
