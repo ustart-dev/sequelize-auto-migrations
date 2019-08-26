@@ -62,7 +62,7 @@ if (options['ustart-models']) {
   require(`${DATA_PATH}/datasources`);
 
   loadModels();
-  sequelize = ustart.datasources.postgres;
+  sequelize = ustart.datasources[ustart.getMigration().datasource];
 } else {
   sequelize = require(modelsDir).sequelize;
 }
