@@ -74,12 +74,11 @@ let sequelize;
 if (options['ustart-models']) {
   const {
     ustart,
-    loadModels,
-    DATA_PATH
+    loadDatasources,
+    loadModels
   } = require("ustart");
 
-  require(`${DATA_PATH}/datasources`);
-
+  loadDatasources();
   loadModels();
   sequelize = ustart.datasources[ustart.getMigration().datasource];
 } else {
