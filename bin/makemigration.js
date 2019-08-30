@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-
+require("dotenv").config();
 const commandLineArgs = require('command-line-args');
 const beautify          = require('js-beautify').js_beautify;
 
@@ -17,6 +17,7 @@ const optionDefinitions = [
     { name: 'execute', alias: 'x', type: Boolean, description: 'Create new migration and execute it' },
     { name: 'migrations-path', type: String, description: 'The path to the migrations folder' },
     { name: 'models-path', type: String, description: 'The path to the models folder' },
+    { name: 'ustart-models', type: Boolean, description: 'Load models from an ustart project. This option replaces the default models-path option. See https://ustart.dev' },
     { name: 'help', type: Boolean, description: 'Show this message' }
 ];
 
@@ -29,7 +30,7 @@ if (options.help)
         let alias = (option.alias) ? ` (-${option.alias})` : '\t';
         console.log(`\t --${option.name}${alias} \t${option.description}`);
     });
-    process.exit(0);    
+    process.exit(0);
 }
 
 // Windows support
@@ -38,11 +39,11 @@ if(!process.env.PWD){
 }
 
 const {
-    migrationsDir, 
+    migrationsDir,
     modelsDir
 } = pathConfig(options);
 
-if (!fs.existsSync(modelsDir)) {
+if (!options['ustart-models'] && !fs.existsSync(modelsDir)) {
     console.log("Can't find models directory. Use `sequelize init` to create it")
     return
 }
@@ -56,28 +57,41 @@ if (!fs.existsSync(migrationsDir)) {
 const currentState = {
     tables: {}
 };
-    
+
 // load last state
 let previousState = {
     revision: 0,
     version: 1,
     tables: {}
 };
-    
+
 try {
     previousState = JSON.parse(fs.readFileSync(path.join(migrationsDir, '_current.json') ));
 } catch (e) { }
 
 //console.log(path.join(migrationsDir, '_current.json'), JSON.parse(fs.readFileSync(path.join(migrationsDir, '_current.json') )))
-let sequelize = require(modelsDir).sequelize;
+let sequelize;
+if (options['ustart-models']) {
+  const {
+    ustart,
+    loadDatasources,
+    loadModels
+  } = require("ustart");
+
+  loadDatasources();
+  loadModels();
+  sequelize = ustart.datasources[ustart.getMigration().datasource];
+} else {
+  sequelize = require(modelsDir).sequelize;
+}
 
 let models = sequelize.models;
 
 currentState.tables = migrate.reverseModels(sequelize, models);
-    
+
 let actions = migrate.parseDifference(previousState.tables, currentState.tables);
 
-// sort actions    
+// sort actions
 migrate.sortActions(actions);
 
 let migration = migrate.getMigration(actions);
@@ -110,7 +124,7 @@ currentState.revision = previousState.revision + 1;
 fs.writeFileSync(path.join(migrationsDir, '_current.json'), JSON.stringify(currentState, null, 4) );
 
 // write migration to file
-let info = migrate.writeMigration(currentState.revision, 
+let info = migrate.writeMigration(currentState.revision,
                migration,
                migrationsDir,
                (options.name) ? options.name : 'noname',
