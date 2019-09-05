@@ -61,7 +61,14 @@ if (options['ustart-models']) {
 
   loadDatasources();
   loadModels();
-  sequelize = ustart.datasources[ustart.getMigration().datasource];
+
+  const mig = ustart.getMigration();
+  if (!mig) {
+    console.log("There is no datasource with migration enabled. Edit your datasources.js.");
+    return;
+  }
+
+  sequelize = ustart.datasources[mig.datasource];
 } else {
   sequelize = require(modelsDir).sequelize;
 }
